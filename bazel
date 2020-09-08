@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+# This is a wrapper script, that automatically download bazel from GitHub release pages
+# You can give the required bazel version with BAZEL_VERSION env variable
+# If no version is given, it falls back to the value of DEFAULT_BAZEL_VERSION
+DEFAULT_BAZEL_VERSION=3.5.0
+
+set -e
+
+if [ -z "$BAZEL_VERSION" ] ; then
+  if [ -f "bazel" ] && [ "$BASH_SOURCE" != "bazel" ] ; then
+    BAZEL_VERSION=$(grep -F "DEFAULT_BAZEL_VERSION=" "bazel" | head -n 1 | cut -d= -f2)
+  else
+    BAZEL_VERSION=$DEFAULT_BAZEL_VERSION
+  fi
+fi
+
+BAZEL_DOWNLOAD_PATH="$HOME/.bazel/download"
+BAZEL_EXEC_PATH="${BAZEL_DOWNLOAD_PATH}/$BAZEL_VERSION"
+
+if [ ! -x "$BAZEL_EXEC_PATH" ] ; then
+  mkdir -p $BAZEL_DOWNLOAD_PATH
+  DOWNLOAD_FILE=$BAZEL_EXEC_PATH-tmp-download
+  if [[ "$OSTYPE" == "linux-gnu" ]]; then # Ubuntu
+    BAZEL_OS_SUFFIX="linux"
+  elif [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
+    BAZEL_OS_SUFFIX="darwin"
+  fi
+  BAZEL_DOWNLOAD_URL="https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-$BAZEL_OS_SUFFIX-x86_64"
+  curl --fail -L -o "$DOWNLOAD_FILE" "$BAZEL_DOWNLOAD_URL"
+  chmod +x "$DOWNLOAD_FILE"
+  mv "$DOWNLOAD_FILE" "$BAZEL_EXEC_PATH"
+  unset DOWNLOAD_FILE
+  unset BAZEL_DOWNLOAD_URL
+  unset BAZEL_OS_SUFFIX
+fi
+
+unset BAZEL_DOWNLOAD_PATH
+unset BAZEL_VERSION
+
+exec $BAZEL_EXEC_PATH "$@"
